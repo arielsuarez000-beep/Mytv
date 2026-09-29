@@ -3,8 +3,10 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+
 permissions:
   contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -25,6 +27,21 @@ jobs:
           distribution: temurin
           java-version: 17
 
+      - name: Habilitar Cleartext en app.json
+        run: |
+          node -e '
+            const fs = require("fs");
+            const path = "./mitv/app.json";
+            if (fs.existsSync(path)) {
+              const content = JSON.parse(fs.readFileSync(path, "utf8"));
+              content.expo = content.expo || {};
+              content.expo.android = content.expo.android || {};
+              content.expo.android.usesCleartextTraffic = true;
+              fs.writeFileSync(path, JSON.stringify(content, null, 2));
+              console.log("Cleartext agregado correctamente a app.json");
+            }
+          '
+
       - name: Dependencias
         working-directory: mitv
         run: |
@@ -35,14 +52,6 @@ jobs:
         working-directory: mitv
         run: npx expo prebuild --platform android --no-install
 
-      - name: Forzar Cleartext en Manifest Generado
-        run: |
-          MANIFEST="mitv/android/app/src/main/AndroidManifest.xml"
-          if [ -f "$MANIFEST" ]; then
-            sed -i 's/<application/<application android:usesCleartextTraffic="true"/' "$MANIFEST"
-            echo "Cleartext agregado exitosamente a AndroidManifest.xml"
-          fi
-
       - name: Compilar
         working-directory: mitv
         run: |
@@ -50,9 +59,9 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleRelease --no-daemon
 
-      - uses: softprops/action-gh-release@v2
+      - name: Subir APK como artefacto
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: APK-${{ github.run_number }}
-          name: MiTV build ${{ github.run_number }}
-          files: mitv/android/app/build/outputs/apk/release/app-release.apk
+          name: app-release
+          path: mitv/android/app/build/outputs/apk/release/app-release.apk
           
