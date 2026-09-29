@@ -25,21 +25,6 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Configurar Cleartext en app.json
-        run: |
-          node -e '
-            const fs = require("fs");
-            const file = "./mitv/app.json";
-            if (fs.existsSync(file)) {
-              const data = JSON.parse(fs.readFileSync(file, "utf8"));
-              data.expo = data.expo || {};
-              data.expo.android = data.expo.android || {};
-              data.expo.android.usesCleartextTraffic = true;
-              fs.writeFileSync(file, JSON.stringify(data, null, 2));
-              console.log("app.json actualizado con usesCleartextTraffic: true");
-            }
-          '
-
       - name: Dependencias
         working-directory: mitv
         run: |
@@ -49,6 +34,14 @@ jobs:
       - name: Generar Android
         working-directory: mitv
         run: npx expo prebuild --platform android --no-install
+
+      - name: Forzar Cleartext en Manifest Generado
+        run: |
+          MANIFEST="mitv/android/app/src/main/AndroidManifest.xml"
+          if [ -f "$MANIFEST" ]; then
+            sed -i 's/<application/<application android:usesCleartextTraffic="true"/' "$MANIFEST"
+            echo "Cleartext agregado exitosamente a AndroidManifest.xml"
+          fi
 
       - name: Compilar
         working-directory: mitv
@@ -62,3 +55,4 @@ jobs:
           tag_name: APK-${{ github.run_number }}
           name: MiTV build ${{ github.run_number }}
           files: mitv/android/app/build/outputs/apk/release/app-release.apk
+          
