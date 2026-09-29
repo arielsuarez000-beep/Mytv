@@ -29,6 +29,9 @@ jobs:
       - name: Generar Android
         working-directory: mitv
         run: npx expo prebuild --platform android --no-install
+      - name: Habilitar Cleartext en Android
+        run: |
+          sed -i 's/<application/<application android:usesCleartextTraffic="true"/g' mitv/android/app/src/main/AndroidManifest.xml || true
       - name: Compilar
         working-directory: mitv
         run: |
@@ -37,6 +40,7 @@ jobs:
           ./gradlew assembleRelease --no-daemon
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: apk-${{ github.run_number }}
+          tag_name: APK-${{ github.run_number }}
           name: MiTV build ${{ github.run_number }}
           files: mitv/android/app/build/outputs/apk/release/app-release.apk
+          
