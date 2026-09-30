@@ -52,6 +52,25 @@ jobs:
         working-directory: mitv
         run: npx expo prebuild --platform android --no-install
 
+      - name: Configurar soporte para Android TV
+        run: |
+          MANIFEST="mitv/android/app/src/main/AndroidManifest.xml"
+          if [ -f "$MANIFEST" ]; then
+            # Agregar banner e intent-filter de Leanback para TV Box
+            node -e '
+              const fs = require("fs");
+              let xml = fs.readFileSync("'$MANIFEST'", "utf8");
+              if (!xml.includes("android.intent.category.LEANBACK_LAUNCHER")) {
+                xml = xml.replace(
+                  "</category>",
+                  "</category>\n        <category android:name=\"android.intent.category.LEANBACK_LAUNCHER\"/>"
+                );
+                fs.writeFileSync("'$MANIFEST'", xml);
+                console.log("Soporte para TV Box agregado al Manifest.");
+              }
+            '
+          fi
+
       - name: Compilar
         working-directory: mitv
         run: |
